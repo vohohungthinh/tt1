@@ -48,5 +48,9 @@ $this->registerCss("
             <div class="admin-card-title"><?= Html::a('Manage Countries', ['country/index'], ['class' => 'btn btn-success']) ?></div>
             <div class="admin-card-description">Manage country data and related information.</div>
         </div>
+        <div class="admin-card">
+            <div class="admin-card-title"><?= Html::a('Upload ', ['thongtin-nha/import'], ['class' => 'btn btn-success']) ?></div>
+            <div class="admin-card-description">Manage upload housing information.</div>
+        </div>
     </div>
 </div>
