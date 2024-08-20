@@ -75,9 +75,8 @@ class ThongtinNhaController extends Controller
                     $thongtinNha->sothua = $row['J'];
                     $thongtinNha->chusohuu = $row['K'];
 
-                    // Kiểm tra xem có cột nào trống không và thêm lỗi nếu có
                     foreach ($row as $column => $value) {
-                        if (empty($value) && $column !== 'K') { // Chỉ kiểm tra các cột từ A đến J
+                        if (empty($value) && $column !== 'K') { 
                             $errors[] = [
                                 'row' => $key,
                                 'column' => $column,
@@ -85,9 +84,6 @@ class ThongtinNhaController extends Controller
                             ];
                         }
                     }
-    
-
-                    // Xác thực dữ liệu
                     if (!$thongtinNha->validate()) {
                         foreach ($thongtinNha->errors as $attribute => $messages) {
                             foreach ($messages as $message) {
@@ -113,15 +109,13 @@ class ThongtinNhaController extends Controller
                     $transaction->rollBack();
                     Yii::$app->session->setFlash('error', 'Import có lỗi xảy ra. Vui lòng kiểm tra lỗi.');
                 }
-            } catch (Exception $e) {
-            }
+            } catch (Exception $e) {}
 
             return $this->render('import', [
                 'model' => $model,
                 'errors' => $errors,
             ]);
         } else {
-            // Nếu không hợp lệ, lấy lỗi từ mô hình
             $errors = $model->errors;
         }
     }
