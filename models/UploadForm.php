@@ -20,6 +20,8 @@ class UploadForm extends Model
     {
         return [
             [['excelFile'], 'file', 'extensions' => 'xlsx', 'mimeTypes' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+            [['excelFile'], 'required', 'message' => 'Vui lòng chọn file Excel để tải lên.'],
+            [['excelFile'], 'file', 'extensions' => 'xlsx', 'message' => 'Chỉ chấp nhận file có định dạng .xlsx.'],
         ];
     }
 }

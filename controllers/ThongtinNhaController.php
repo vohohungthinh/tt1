@@ -1,5 +1,4 @@
 <?php
-
 namespace app\controllers;
 
 use Yii;
@@ -10,6 +9,7 @@ use app\models\UploadForm;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Reader\Xlsx;
 use yii\filters\AccessControl;
+use yii\db\Exception;
 
 class ThongtinNhaController extends Controller
 {
@@ -18,13 +18,12 @@ class ThongtinNhaController extends Controller
         return [
             'access' => [
                 'class' => AccessControl::class,
-                'only' => ['import'], // Kiểm soát truy cập cho action import
+                'only' => ['import'],
                 'rules' => [
                     [
                         'allow' => true,
-                        'roles' => ['@'], // Chỉ cho phép người dùng đã đăng nhập
+                        'roles' => ['@'],
                         'matchCallback' => function ($rule, $action) {
-                            // Kiểm tra xem người dùng có vai trò admin hay không
                             return Yii::$app->user->identity->role === 'admin';
                         },
                     ],
@@ -42,45 +41,93 @@ class ThongtinNhaController extends Controller
 
         return parent::beforeAction($action);
     }
+
     public function actionImport()
-    {
-        $model = new UploadForm();
+{
+    $model = new UploadForm();
+    $errors = [];
 
-        if (Yii::$app->request->isPost) {
-            $model->excelFile = UploadedFile::getInstance($model, 'excelFile');
+    if (Yii::$app->request->isPost) {
+        $model->excelFile = UploadedFile::getInstance($model, 'excelFile');
 
-            if ($model->validate()) {
-                $reader = new Xlsx();
-                $spreadsheet = $reader->load($model->excelFile->tempName);
-                $sheetData = $spreadsheet->getActiveSheet()->toArray(null, true, true, true);
+        // Validate file upload
+        if ($model->validate()) {
+            $reader = new Xlsx();
+            $spreadsheet = $reader->load($model->excelFile->tempName);
+            $sheetData = $spreadsheet->getActiveSheet()->toArray(null, true, true, true);
 
-                foreach ($sheetData as $row) {
-                    if ($row['A'] !== 'id') { // Bỏ qua hàng tiêu đề
-                        // Kiểm tra xem dữ liệu đã tồn tại trong cơ sở dữ liệu hay chưa
-                        $exists = ThongtinNha::findOne(['id' => $row['A']]);
+            $transaction = Yii::$app->db->beginTransaction();
+
+            try {
+                foreach ($sheetData as $key => $row) {
+                    if ($key === 1) continue; // Bỏ qua hàng tiêu đề
+
+                    $thongtinNha = new ThongtinNha();
+                    $thongtinNha->id = $row['A'];
+                    $thongtinNha->sonha = $row['B'];
+                    $thongtinNha->tenduong = $row['C'];
+                    $thongtinNha->phuongxa = $row['D'];
+                    $thongtinNha->quanhuyen = $row['E'];
+                    $thongtinNha->dientich_dat = $row['F'];
+                    $thongtinNha->dientich_xaydung = $row['G'];
+                    $thongtinNha->dientich_san = $row['H'];
+                    $thongtinNha->soto = $row['I'];
+                    $thongtinNha->sothua = $row['J'];
+                    $thongtinNha->chusohuu = $row['K'];
+
+                    // Kiểm tra xem có cột nào trống không và thêm lỗi nếu có
+                    foreach ($row as $column => $value) {
+                        if (empty($value) && $column !== 'K') { // Chỉ kiểm tra các cột từ A đến J
+                            $errors[] = [
+                                'row' => $key,
+                                'column' => $column,
+                                'message' => 'Ô này không được để trống.',
+                            ];
+                        }
+                    }
+    
+
+                    // Xác thực dữ liệu
+                    if (!$thongtinNha->validate()) {
+                        foreach ($thongtinNha->errors as $attribute => $messages) {
+                            foreach ($messages as $message) {
+                                $errors[] = [
+                                    'row' => $key,
+                                    'column' => $attribute,
+                                    'message' => $message,
+                                ];
+                            }
+                        }
+                    } else {
+                        $exists = ThongtinNha::findOne(['id' => $thongtinNha->id]);
                         if ($exists === null) {
-                            $thongtinNha = new ThongtinNha();
-                            $thongtinNha->id = $row['A'];
-                            $thongtinNha->sonha = $row['B'];
-                            $thongtinNha->tenduong = $row['C'];
-                            $thongtinNha->phuongxa = $row['D'];
-                            $thongtinNha->quanhuyen = $row['E'];
-                            $thongtinNha->dientich_dat = $row['F'];
-                            $thongtinNha->dientich_xaydung = $row['G'];
-                            $thongtinNha->dientich_san = $row['H'];
-                            $thongtinNha->soto = $row['I'];
-                            $thongtinNha->sothua = $row['J'];
-                            $thongtinNha->chusohuu = $row['K'];
                             $thongtinNha->save();
                         }
                     }
                 }
 
-                Yii::$app->session->setFlash('success', 'Import thành công! Chỉ thêm các dòng mới.');
-                return $this->redirect(['import']);
+                if (empty($errors)) {
+                    $transaction->commit();
+                    Yii::$app->session->setFlash('success', 'Import thành công! Chỉ thêm các dòng mới.');
+                } else {
+                    $transaction->rollBack();
+                    Yii::$app->session->setFlash('error', 'Import có lỗi xảy ra. Vui lòng kiểm tra lỗi.');
+                }
+            } catch (Exception $e) {
             }
-        }
 
-        return $this->render('import', ['model' => $model]);
+            return $this->render('import', [
+                'model' => $model,
+                'errors' => $errors,
+            ]);
+        } else {
+            // Nếu không hợp lệ, lấy lỗi từ mô hình
+            $errors = $model->errors;
+        }
     }
+
+    return $this->render('import', ['model' => $model, 'errors' => $errors]);
 }
+
+}
+
