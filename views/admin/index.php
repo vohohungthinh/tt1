@@ -52,5 +52,8 @@ $this->registerCss("
             <div class="admin-card-title"><?= Html::a('Upload ', ['thongtin-nha/import'], ['class' => 'btn btn-success']) ?></div>
             <div class="admin-card-description">Manage upload housing information.</div>
         </div>
+        <div class="admin-card">
+            <div class="admin-card-title"><?= Html::a('Backup Database', ['backup/index'], ['class' => 'btn btn-success']) ?></div>
+            <div class="admin-card-description">Backup your database and download the backup files.</div>
     </div>
 </div>

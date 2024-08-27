@@ -10,6 +10,7 @@ $config = [
     'aliases' => [
         '@bower' => '@vendor/bower-asset',
         '@npm'   => '@vendor/npm-asset',
+        '@backups' => '@app/web/backup',
     ],
     'components' => [
         'request' => [
@@ -21,6 +22,7 @@ $config = [
         'cache' => [
             'class' => 'yii\caching\FileCache',
         ],
+        
         'user' => [
             'identityClass' => 'app\models\User',
             'enableAutoLogin' => true,
@@ -59,6 +61,7 @@ $config = [
                 'admin' => 'admin/dashboard',
             ],
         ],
+
     
     ],
     'params' => [
